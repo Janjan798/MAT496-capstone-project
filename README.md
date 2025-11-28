@@ -24,25 +24,27 @@ The first purpose of the capstone project is to give a chance to revise all the 
 
 # Project report Template
 
-## Title: [your title goes here]
+## Title: [NBA Roster & Injury Status Assistant using LangGraph and RAG]
 
 ## Overview
 
-[your overview goes here. My project does this that  etc]
+[My project builds an LLM-powered assistant that tracks NBA rosters and player injury statuses (Out / Day-to-day / Healthy). It automatically fetches roster and injury data, stores structured summaries, and lets users ask natural-language questions like ‘Who is out for the Lakers tonight and why?’ The system uses LangGraph to orchestrate tools, semantic search, and RAG to generate updated, human-readable responses.]
 
 ## Reason for picking up this project
 
-Expain how this project is aligned with this course content.
+Real-world use case of LLMs processing constantly changing text-heavy information like injury reports and news. I also was doing another project to predict player stats for his next game based on previous data and having this would help me. Also I like basketball.
 
 ## Plan
 
 I plan to excecute these steps to complete my project.
 
-- [TODO] Step 1 involves blah blah
-- [TODO] Step 2 involves blah blah
-- [TODO] Step 3 involves blah blah
-- ...
-- [TODO] Step n involves blah blah
+- [TODO] Step 1 Defining data source, where will i get/scrape from
+- [TODO] Step 2 Creating the necessary tool functions for getting team roster, getting team/player status and updating an excel sheet.
+- [TODO] Step 3 Defining structure output schemas with what we need to save and answer
+- [TODO] Step 4 Collect short text about why the player is injured
+- [TODO] Step 5 Create Langgraph state with data you want persisted across nodes and building them
+- [TODO] Step 6 Connecting and making the langgraph flow
+- [TODO] Step 7 Test using Langsmith
 
 ## Conclusion:
 
