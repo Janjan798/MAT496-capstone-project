@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 
 class PlayerStatus(BaseModel):
-    team: str
+    team: Optional[str] =    None
     player_name: str
     status: str          # "OUT" | "DTD (day to day)" | "HEALTHY"
     reason: Optional[str] = None

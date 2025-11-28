@@ -38,8 +38,8 @@ Real-world use case of LLMs processing constantly changing text-heavy informatio
 
 I plan to excecute these steps to complete my project.
 
-- [TODO] Step 1 Defining data source, where will i get/scrape from
-- [TODO] Step 2 Creating the necessary tool functions for getting team roster, getting team/player status and updating an excel sheet.
+- [DONE] Step 1 Defining data source, where will i get/scrape from
+- [DONE] Step 2 Creating the necessary tool functions for getting team roster, getting team/player status and updating an excel sheet.
 - [TODO] Step 3 Defining structure output schemas with what we need to save and answer
 - [TODO] Step 4 Collect short text about why the player is injured
 - [TODO] Step 5 Create Langgraph state with data you want persisted across nodes and building them
