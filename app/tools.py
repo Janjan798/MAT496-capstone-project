@@ -4,6 +4,7 @@ from typing import List
 
 import pandas as pd
 from langchain_openai import ChatOpenAI
+from langchain_core.tools import tool
 
 from .state import PlayerStatus
 
@@ -135,3 +136,122 @@ def summarize_injuries_with_llm(players: List[PlayerStatus]) -> str:
 
     resp = llm.invoke(prompt)
     return resp.content
+
+
+# --- Team inference helpers ---
+TEAM_KEYWORDS = {
+    "hawks": "Atlanta Hawks",
+    "celtics": "Boston Celtics",
+    "nets": "Brooklyn Nets",
+    "hornets": "Charlotte Hornets",
+    "bulls": "Chicago Bulls",
+    "cavaliers": "Cleveland Cavaliers",
+    "mavericks": "Dallas Mavericks",
+    "nuggets": "Denver Nuggets",
+    "pistons": "Detroit Pistons",
+    "warriors": "Golden State Warriors",
+    "rockets": "Houston Rockets",
+    "pacers": "Indiana Pacers",
+    "clippers": "LA Clippers",
+    "lakers": "Los Angeles Lakers",
+    "grizzlies": "Memphis Grizzlies",
+    "heat": "Miami Heat",
+    "bucks": "Milwaukee Bucks",
+    "timberwolves": "Minnesota Timberwolves",
+    "pelicans": "New Orleans Pelicans",
+    "knicks": "New York Knicks",
+    "thunder": "Oklahoma City Thunder",
+    "magic": "Orlando Magic",
+    "76ers": "Philadelphia 76ers",
+    "sixers": "Philadelphia 76ers",
+    "suns": "Phoenix Suns",
+    "trail blazers": "Portland Trail Blazers",
+    "kings": "Sacramento Kings",
+    "spurs": "San Antonio Spurs",
+    "raptors": "Toronto Raptors",
+    "jazz": "Utah Jazz",
+    "wizards": "Washington Wizards",
+}
+
+
+def infer_team_from_text(text: str | None) -> str | None:
+    if not text:
+        return None
+    lower = text.lower()
+    for key, full in TEAM_KEYWORDS.items():
+        if key in lower or f"the {key}" in lower:
+            return full
+    return None
+
+
+def with_inferred_teams(players: List[PlayerStatus]) -> List[PlayerStatus]:
+    enriched: List[PlayerStatus] = []
+    for p in players:
+        team = p.team or infer_team_from_text(p.reason)
+        enriched.append(
+            PlayerStatus(
+                team=team,
+                player_name=p.player_name,
+                status=p.status,
+                reason=p.reason,
+                expected_return=p.expected_return,
+            )
+        )
+    return enriched
+
+
+# --- LangChain tool functions ---
+@tool
+def get_injury_status(player_name: str) -> str:
+    """Return the injury status summary for a given player name."""
+    players = load_player_statuses_from_csv()
+    if not players:
+        players = fetch_and_store_injuries()
+    players = with_inferred_teams(players)
+
+    matches = [p for p in players if p.player_name.lower() == player_name.lower()]
+    if not matches:
+        return f"No injury info found for {player_name}."
+
+    lines = []
+    for p in matches:
+        line = f"{p.player_name}"
+        if p.team:
+            line += f" ({p.team})"
+        line += f": {p.status}"
+        if p.reason:
+            line += f" — {p.reason}"
+        if p.expected_return:
+            line += f"; expected return: {p.expected_return}"
+        lines.append(line)
+    return "\n".join(lines)
+
+
+@tool
+def get_team_roster(team_name: str) -> str:
+    """Return injured players matching a given NBA team name."""
+    players = load_player_statuses_from_csv()
+    if not players:
+        players = fetch_and_store_injuries()
+    players = with_inferred_teams(players)
+
+    team_lower = team_name.lower()
+    team_players = [p for p in players if (p.team or "").lower() == team_lower]
+
+    if not team_players:
+        # Try fuzzy match by keywords
+        keywords_hit = [
+            p for p in players if infer_team_from_text(p.reason) and infer_team_from_text(p.reason).lower() == team_lower
+        ]
+        team_players = keywords_hit
+
+    if not team_players:
+        return f"No injured players found for team: {team_name}."
+
+    lines = [f"Injured players for {team_name}:"]
+    for p in team_players:
+        line = f"- {p.player_name}: {p.status}"
+        if p.expected_return:
+            line += f" (return: {p.expected_return})"
+        lines.append(line)
+    return "\n".join(lines)
