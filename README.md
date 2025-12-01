@@ -40,9 +40,9 @@ I plan to excecute these steps to complete my project.
 
 - [DONE] Step 1 Defining data source, where will i get/scrape from
 - [DONE] Step 2 Creating the necessary tool functions for getting team roster, getting team/player status and updating an excel sheet.
-- [TODO] Step 3 Defining structure output schemas with what we need to save and answer
-- [TODO] Step 4 Collect short text about why the player is injured
-- [TODO] Step 5 Create Langgraph state with data you want persisted across nodes and building them
+- [DONE] Step 3 Defining structure output schemas with what we need to save and answer
+- [DONE] Step 4 Collect short text about why the player is injured
+- [DONE] Step 5 Create Langgraph state with data you want persisted across nodes and building them
 - [TODO] Step 6 Connecting and making the langgraph flow
 - [TODO] Step 7 Test using Langsmith
 

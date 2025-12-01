@@ -3,6 +3,7 @@ from typing import Dict, Any
 from langgraph.graph import StateGraph
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 
 from .state import GraphState
 from .tools import get_team_roster, get_injury_status
@@ -17,11 +18,56 @@ llm = ChatOpenAI(model="gpt-5").bind_tools([
 
 def llm_node(state: GraphState) -> Dict[str, Any]:
     """
-    Core node: takes messages from state, lets LLM decide
-    whether to call tools, and returns the new messages.
+    Core node: takes the user_query, lets the LLM decide whether to call tools,
+    executes any tool calls, and returns the final natural-language answer.
     """
-    result = llm.invoke(state["messages"])
-    return {"messages": [result]}
+    import json
+
+    user_query = state.get("user_query", "").strip()
+    if not user_query:
+        return {"answer": ""}
+
+    messages = [HumanMessage(content=user_query)]
+
+    # Iterate: LLM -> (optional) tool calls -> tool outputs -> LLM ... until final content
+    for _ in range(3):
+        ai: AIMessage = llm.invoke(messages)
+
+        tool_calls = getattr(ai, "tool_calls", None) or []
+        if not tool_calls:
+            content = (ai.content or "").strip()
+            return {"answer": content}
+
+        messages.append(ai)
+
+        for call in tool_calls:
+            name = call.get("name") or call.get("tool")
+            args = call.get("args", {})
+            if isinstance(args, str):
+                try:
+                    args = json.loads(args)
+                except Exception:
+                    args = {"input": args}
+
+            if name == "get_injury_status":
+                output = get_injury_status.invoke({
+                    "player_name": args.get("player_name") or args.get("name") or ""
+                })
+            elif name == "get_team_roster":
+                output = get_team_roster.invoke({
+                    "team_name": args.get("team_name") or args.get("team") or ""
+                })
+            else:
+                output = f"Unknown tool: {name}"
+
+            messages.append(
+                ToolMessage(
+                    content=str(output),
+                    tool_call_id=call.get("id") or name or "tool",
+                )
+            )
+
+    return {"answer": ""}
 
 
 def build_graph():

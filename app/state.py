@@ -26,3 +26,5 @@ class AppState(TypedDict):
 
     # final answer
     answer: str
+    
+GraphState = AppState

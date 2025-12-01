@@ -85,13 +85,21 @@ def load_player_statuses_from_csv() -> List[PlayerStatus]:
     df = pd.read_csv(CSV_PATH)
     players: List[PlayerStatus] = []
     for _, row in df.iterrows():
+        team_val = row.get("team")
+        reason_val = row.get("reason")
+        exp_ret_val = row.get("expected_return")
+
+        team = None if pd.isna(team_val) else str(team_val)
+        reason = None if pd.isna(reason_val) else str(reason_val)
+        expected_return = None if pd.isna(exp_ret_val) else str(exp_ret_val)
+
         players.append(
             PlayerStatus(
-                team=row.get("team"),
-                player_name=row["player_name"],
-                status=row["status"],
-                reason=row.get("reason"),
-                expected_return=row.get("expected_return"),
+                team=team,
+                player_name=str(row["player_name"]),
+                status=str(row["status"]),
+                reason=reason,
+                expected_return=expected_return,
             )
         )
     return players
