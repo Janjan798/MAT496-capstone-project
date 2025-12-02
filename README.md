@@ -26,6 +26,9 @@ The first purpose of the capstone project is to give a chance to revise all the 
 
 ## Title: NBA Roster & Injury Status Assistant using LangGraph and RAG
 
+## Video Link
+
+
 ## Overview
 
 My project builds an LLM-powered assistant that tracks NBA rosters and player injury statuses (Out / Day-to-day / Healthy). It automatically fetches roster and injury data, stores structured summaries, and lets users ask natural-language questions like ‘Who is out for the Lakers tonight and why?’ The system uses LangGraph to orchestrate tools, semantic search, and RAG to generate updated, human-readable responses.
@@ -43,12 +46,12 @@ I plan to excecute these steps to complete my project.
 - [DONE] Step 3 Defining structure output schemas with what we need to save and answer
 - [DONE] Step 4 Collect short text about why the player is injured
 - [DONE] Step 5 Create Langgraph state with data you want persisted across nodes and building them
-- [TODO] Step 6 Connecting and making the langgraph flow
-- [TODO] Step 7 Test using Langsmith
+- [DONE] Step 6 Connecting and making the langgraph flow
+- [DONE] Step 7 Test using Langsmith
 
 ## Conclusion:
 
-I had planned to achieve {this this}. I think I have/have-not achieved the conclusion satisfactorily. The reason for your satisfaction/unsatisfaction.
+I had planned to achieve a injury scraper and summarizer. I think I have achieved the conclusion satisfactorily. That’s the NBA Injury Assistant. It scrapes ESPN, stores CSV, and answers questions using LangGraph + GPT-5.
 
 ----------
 
