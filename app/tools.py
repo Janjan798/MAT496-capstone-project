@@ -115,6 +115,8 @@ def fetch_and_store_injuries() -> List[PlayerStatus]:
     """
     df = fetch_espn_injuries_raw()
     players = df_to_player_statuses(df)
+    # Enrich with inferred teams before persisting
+    players = with_inferred_teams(players)
     save_player_statuses_to_csv(players)
     return players
 
@@ -183,12 +185,56 @@ TEAM_KEYWORDS = {
 
 
 def infer_team_from_text(text: str | None) -> str | None:
+    """
+    Infer team from ESPN comment text, avoiding opponent mentions.
+    We only accept patterns indicating affiliation, not matchup context.
+    Accepted examples:
+      - "the Hawks recalled..."
+      - "Celtics' official site reports"
+      - "the Lakers announced..."
+    Rejected examples (opponents):
+      - "game against the 76ers"
+      - "vs. the Knicks"
+    """
     if not text:
         return None
     lower = text.lower()
+
+    def is_opponent_context(team_key: str) -> bool:
+        return (
+            f"against the {team_key}" in lower
+            or f"vs the {team_key}" in lower
+            or f"vs. the {team_key}" in lower
+            or f"versus the {team_key}" in lower
+        )
+
     for key, full in TEAM_KEYWORDS.items():
-        if key in lower or f"the {key}" in lower:
+        if is_opponent_context(key):
+            # Mentioned as opponent; skip
+            continue
+
+        # Possessive or org-owned phrasing suggests affiliation
+        if (
+            f"the {key} " in lower
+            or f" {key}'s" in lower
+            or f" {key} official" in lower
+        ):
             return full
+
+        # Direct bare keyword can be noisy; require a nearby verb/noun
+        if key in lower:
+            # Require verbs indicating actions by the org (recalled, ruled out, announced)
+            window_ok = any(
+                phrase in lower for phrase in (
+                    f"{key} recalled",
+                    f"{key} ruled",
+                    f"{key} announced",
+                    f"{key} signed",
+                    f"{key} placed",
+                )
+            )
+            if window_ok and not is_opponent_context(key):
+                return full
     return None
 
 
@@ -209,6 +255,11 @@ def with_inferred_teams(players: List[PlayerStatus]) -> List[PlayerStatus]:
 
 
 # --- LangChain tool functions ---
+@tool
+def refresh_injuries() -> str:
+    """Fetch latest ESPN injuries and store them to CSV. Returns a short status string."""
+    players = fetch_and_store_injuries()
+    return f"Refreshed injuries: stored {len(players)} rows to CSV."
 @tool
 def get_injury_status(player_name: str) -> str:
     """Return the injury status summary for a given player name."""

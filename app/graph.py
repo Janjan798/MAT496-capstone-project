@@ -3,14 +3,15 @@ from typing import Dict, Any
 from langgraph.graph import StateGraph
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
+from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, SystemMessage
 
 from .state import GraphState
-from .tools import get_team_roster, get_injury_status
+from .tools import refresh_injuries, get_team_roster, get_injury_status
 
 
 # LLM with tools bound
 llm = ChatOpenAI(model="gpt-5").bind_tools([
+    refresh_injuries,
     get_team_roster,
     get_injury_status,
 ])
@@ -27,7 +28,13 @@ def llm_node(state: GraphState) -> Dict[str, Any]:
     if not user_query:
         return {"answer": ""}
 
-    messages = [HumanMessage(content=user_query)]
+    messages = [
+        SystemMessage(content=(
+            "You are an NBA injury assistant. Always use tools to refresh the "
+            "injury dataset and to answer questions. Do not guess."
+        )),
+        HumanMessage(content=user_query),
+    ]
 
     # Iterate: LLM -> (optional) tool calls -> tool outputs -> LLM ... until final content
     for _ in range(3):
@@ -49,7 +56,9 @@ def llm_node(state: GraphState) -> Dict[str, Any]:
                 except Exception:
                     args = {"input": args}
 
-            if name == "get_injury_status":
+            if name == "refresh_injuries":
+                output = refresh_injuries.invoke({})
+            elif name == "get_injury_status":
                 output = get_injury_status.invoke({
                     "player_name": args.get("player_name") or args.get("name") or ""
                 })
