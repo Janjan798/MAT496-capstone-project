@@ -20,14 +20,23 @@ llm = ChatOpenAI(model="gpt-5", temperature=0)
 
 def fetch_espn_injuries_raw() -> pd.DataFrame:
     """
-    Fetch NBA injury tables from ESPN and return a DataFrame.
+    Fetch NBA injury tables from ESPN and return a single DataFrame
+    with an extra TEAM column filled correctly.
     """
-    tables = pd.read_html(ESPN_INJURIES_URL) 
+    tables = pd.read_html(ESPN_INJURIES_URL)
     if not tables:
         raise RuntimeError("No tables found on ESPN injuries page")
 
-    combined = pd.concat(tables, ignore_index=True)
+    frames = []
+    for team_name, df in zip(NBA_TEAMS, tables):
+        df = df.copy()
+        # Add TEAM column so we can store it later
+        df["TEAM"] = team_name
+        frames.append(df)
+
+    combined = pd.concat(frames, ignore_index=True)
     return combined
+
 
 
 def df_to_player_statuses(df: pd.DataFrame) -> List[PlayerStatus]:
@@ -46,12 +55,16 @@ def df_to_player_statuses(df: pd.DataFrame) -> List[PlayerStatus]:
         if pd.isna(name) or pd.isna(status):
             continue
 
+        # TEAM column is added in fetch_espn_injuries_raw; use it when present
+        team_raw = row.get("TEAM") if "TEAM" in df.columns else None
+        team = None if team_raw is None or pd.isna(team_raw) else str(team_raw)
+
         expected_return = row.get("EST. RETURN DATE") if "EST. RETURN DATE" in df.columns else None
         comment = row.get("COMMENT") if "COMMENT" in df.columns else None
 
         player_statuses.append(
             PlayerStatus(
-                team=None,  # can be filled later by another function if you want
+                team=team,
                 player_name=str(name),
                 status=str(status),
                 reason=str(comment) if comment is not None and not pd.isna(comment) else None,
@@ -147,6 +160,39 @@ def summarize_injuries_with_llm(players: List[PlayerStatus]) -> str:
     resp = llm.invoke(prompt)
     return resp.content
 
+
+NBA_TEAMS = [
+    "Atlanta Hawks",
+    "Boston Celtics",
+    "Brooklyn Nets",
+    "Charlotte Hornets",
+    "Chicago Bulls",
+    "Cleveland Cavaliers",
+    "Dallas Mavericks",
+    "Denver Nuggets",
+    "Detroit Pistons",
+    "Golden State Warriors",
+    "Houston Rockets",
+    "Indiana Pacers",
+    "LA Clippers",
+    "Los Angeles Lakers",
+    "Memphis Grizzlies",
+    "Miami Heat",
+    "Milwaukee Bucks",
+    "Minnesota Timberwolves",
+    "New Orleans Pelicans",
+    "New York Knicks",
+    "Oklahoma City Thunder",
+    "Orlando Magic",
+    "Philadelphia 76ers",
+    "Phoenix Suns",
+    "Portland Trail Blazers",
+    "Sacramento Kings",
+    "San Antonio Spurs",
+    "Toronto Raptors",
+    "Utah Jazz",
+    "Washington Wizards",
+]
 
 # --- Team inference helpers ---
 TEAM_KEYWORDS = {
