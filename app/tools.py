@@ -229,6 +229,20 @@ TEAM_KEYWORDS = {
     "wizards": "Washington Wizards",
 }
 
+def canonical_team_name(name: str) -> str | None:
+    if not name:
+        return None
+    n = name.strip().lower()
+    # Exact full name match
+    for full in NBA_TEAMS:
+        if n == full.lower():
+            return full
+    # Keyword-based mapping (nicknames/short forms)
+    for key, full in TEAM_KEYWORDS.items():
+        if key in n:
+            return full
+    return None
+
 
 def infer_team_from_text(text: str | None) -> str | None:
     """
@@ -338,22 +352,20 @@ def get_team_roster(team_name: str) -> str:
     players = load_player_statuses_from_csv()
     if not players:
         players = fetch_and_store_injuries()
-    players = with_inferred_teams(players)
-
-    team_lower = team_name.lower()
+    # Prefer explicit team field from CSV; inference only as fallback
+    team_full = canonical_team_name(team_name) or team_name
+    team_lower = team_full.lower()
     team_players = [p for p in players if (p.team or "").lower() == team_lower]
 
     if not team_players:
-        # Try fuzzy match by keywords
-        keywords_hit = [
-            p for p in players if infer_team_from_text(p.reason) and infer_team_from_text(p.reason).lower() == team_lower
-        ]
-        team_players = keywords_hit
+        # Fallback: try inference from comments
+        enriched = with_inferred_teams(players)
+        team_players = [p for p in enriched if (p.team or "").lower() == team_lower]
 
     if not team_players:
-        return f"No injured players found for team: {team_name}."
+        return f"No injured players found for team: {team_full}."
 
-    lines = [f"Injured players for {team_name}:"]
+    lines = [f"Injured players for {team_full}:"]
     for p in team_players:
         line = f"- {p.player_name}: {p.status}"
         if p.expected_return:

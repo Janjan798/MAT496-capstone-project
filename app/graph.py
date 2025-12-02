@@ -36,8 +36,9 @@ def llm_node(state: GraphState) -> Dict[str, Any]:
         HumanMessage(content=user_query),
     ]
 
+    last_tool_output: str | None = None
     # Iterate: LLM -> (optional) tool calls -> tool outputs -> LLM ... until final content
-    for _ in range(3):
+    for round_idx in range(6):
         ai: AIMessage = llm.invoke(messages)
 
         tool_calls = getattr(ai, "tool_calls", None) or []
@@ -69,6 +70,7 @@ def llm_node(state: GraphState) -> Dict[str, Any]:
             else:
                 output = f"Unknown tool: {name}"
 
+            last_tool_output = str(output)
             messages.append(
                 ToolMessage(
                     content=str(output),
@@ -76,7 +78,11 @@ def llm_node(state: GraphState) -> Dict[str, Any]:
                 )
             )
 
-    return {"answer": ""}
+        # Nudge model to produce a final answer after tools
+        messages.append(SystemMessage(content="Use the tool outputs above to answer the user now, concisely."))
+
+    # Fallback: if no final content, surface the last tool output if available
+    return {"answer": (last_tool_output or "").strip()}
 
 
 def build_graph():
